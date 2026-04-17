@@ -35,7 +35,7 @@ public class Client extends Thread{
 		while(true) {
 			 
 			try {
-			Message message = (Message) in.readObject().toString();
+			Message message = (Message) in.readObject();
 			callback.accept(message);
 			}
 			catch(Exception e) {}
@@ -43,7 +43,7 @@ public class Client extends Thread{
 	
     }
 	
-	public void send(String data) {
+	public void send(Message data) {
 		
 		try {
 			out.writeObject(data);
