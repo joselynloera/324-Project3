@@ -98,8 +98,8 @@ public class Server{
 	
 
 		class ClientThread extends Thread{
-			
-		
+
+			String color = null;
 			Socket connection;
 			int count;
 			ObjectInputStream in;

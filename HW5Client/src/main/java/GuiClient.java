@@ -66,6 +66,7 @@ public class GuiClient extends Application{
 
 		sceneMap.put("client",  createClientGui());
 		sceneMap.put("username", createUsernameGui());
+		sceneMap.put("checkers", createCheckersGui());
 		
 		primaryStage.setOnCloseRequest(new EventHandler<WindowEvent>() {
             @Override
@@ -120,7 +121,7 @@ public class GuiClient extends Application{
 			listItems2.getItems().add(data.sentMessage);
 		}
 	}
-	}
+
 
 	void sendUsername(){
 		String name = inputUsername.getText();
@@ -187,11 +188,11 @@ public class GuiClient extends Application{
 			nxt.setDisable(false);
 		});
 
-	//     nxt.setOnAction(e -> { // this will take the clients to the checkerboard
-	//        primaryStage.setScene(sceneMap.get("scene3"));
-	//        nxt.setDisable(false);
-		//
-	//     })
+	     nxt.setOnAction(e -> { // this will take the clients to the checkerboard
+	        primaryStage.setScene(sceneMap.get("checkers"));
+	        nxt.setDisable(false);
+
+	     });
 
 		colorBox.getChildren().addAll(colorTitle, redBtn, blackBtn, nxt);
 
@@ -262,7 +263,7 @@ public class GuiClient extends Application{
 
 
 	//create checkersGui()
-	public Scene createClientGui() {
+	public Scene createCheckersGui() {
 		userList = new ListView<String>();
 
 		Label ifOnline = new Label("Online: ");
