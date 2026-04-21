@@ -70,6 +70,35 @@ public class Server{
             };
 		}
 	}
+
+//	boolean validMoveCheck(int fromR, int fromC, int toR, int toC){
+//		int piece = boardLogic[fromR][fromC];
+//		if(piece == 0){
+//			return false;
+//		}
+//		if(toR < 0 || toR > 7 || toC < 0 || toC > 7){
+//			return false;
+//		}
+//		if(boardLogic[toR][toC] != 0){
+//			return false;
+//		}
+//
+//		int rowDirection = toR-fromR;
+//		int colDirection = toC-fromC;
+//
+//		if((piece == 1 && redTurn == false) || (piece == 2 && reTurn == true)){
+//			return false;
+//		}
+//		if(piece == 1 && rowDirection >= 0){
+//			return false;
+//		}
+//		if(piece == 2 && colDirection <= 0){
+//			return false;
+//		}
+//		if(Math.abs(rowDirection) == 1 && colDirection == 1){
+//			return true;
+//		}
+//	}
 	
 	public class TheServer extends Thread{
 		

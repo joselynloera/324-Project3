@@ -18,14 +18,18 @@ import javafx.scene.text.Font;
 public class GuiClient extends Application{
 
 	
-	TextField c1;
-	Button b1;
+	TextField c1Client;
+	TextField c1Checkers;
+	Button b1Client;
+	Button b1Checkers;
 	HashMap<String, Scene> sceneMap;
 	VBox clientBox;
 	Client clientConnection;
-	ListView<String> listItems2;
+	ListView<String> listItems2Client;
+	ListView<String> listItems2Checkers;
 
-	ListView<String> userList;
+	ListView<String> userListClient;
+	ListView<String> userListCheckers;
 	
 	String userUsername = null;
 	TextField inputUsername;
@@ -55,12 +59,20 @@ public class GuiClient extends Application{
 		clientConnection.start();
 
 
-		listItems2 = new ListView<String>();
-		c1 = new TextField();
-		b1 = new Button("Send");
-		b1.setFont(new Font("Serif", 12));
-		b1.setOnAction(e -> sendMessage());
-		c1.setOnAction(e -> sendMessage());
+		listItems2Client = new ListView<String>();
+		listItems2Checkers = new ListView<String>();
+
+		c1Client = new TextField();
+		b1Client = new Button("Send");
+		b1Client.setFont(new Font("Serif", 12));
+		b1Client.setOnAction(e -> sendMessage(c1Client));
+		c1Client.setOnAction(e -> sendMessage(c1Client));
+
+		c1Checkers = new TextField();
+		b1Checkers = new Button("Send");
+		b1Checkers.setFont(new Font("Serif", 12));
+		b1Checkers.setOnAction(e -> sendMessage(c1Checkers));
+		c1Checkers.setOnAction(e -> sendMessage(c1Checkers));
 		
 		sceneMap = new HashMap<String, Scene>();
 
@@ -91,10 +103,13 @@ public class GuiClient extends Application{
 			primaryStage.setScene(sceneMap.get("client"));
 		}
 		else if (data.type.equals(Message.userList)) {
-			userList.getItems().setAll(data.users);
+			userListClient.getItems().setAll(data.users);
+			userListCheckers.getItems().setAll(data.users);
 		}
 		else if (data.type.equals(Message.message)){
-			listItems2.getItems().add(data.user + ": " + data.sentMessage);
+			listItems2Client.getItems().add(data.user + ": " + data.sentMessage);
+			listItems2Checkers.getItems().add(data.user + ": " + data.sentMessage);
+
 		}
 		else if(data.type.equals(Message.updateBoard)){
 			boardLogic = data.board;
@@ -102,7 +117,9 @@ public class GuiClient extends Application{
 		}
 		else if (data.type.equals(Message.gameOver)){
 			turn = false;
-			listItems2.getItems().add("Game over" + data.sentMessage);
+			listItems2Client.getItems().add("Game over" + data.sentMessage);
+			listItems2Checkers.getItems().add("Game over" + data.sentMessage);
+
 			playAgain();
 		}
 		else if(data.type.equals(Message.startGame)){
@@ -114,11 +131,14 @@ public class GuiClient extends Application{
 		else if (data.type.equals("color_assigned")) { //what color you are
 
 			if (data.user.equals(userUsername)) {
-				listItems2.getItems().add("You are " + data.sentMessage);
+				listItems2Client.getItems().add("You are " + data.sentMessage);
+				listItems2Checkers.getItems().add("You are " + data.sentMessage);
 			}
 		}
 		else if (data.type.equals("color_broadcast")) { //tells eveyone you chose a color
-			listItems2.getItems().add(data.sentMessage);
+			listItems2Client.getItems().add(data.sentMessage);
+			listItems2Checkers.getItems().add(data.sentMessage);
+
 		}
 	}
 
@@ -172,7 +192,7 @@ public class GuiClient extends Application{
 		//Buttons are Clickable!
 		redBtn.setOnAction(e -> {
 			clientConnection.send(new Message("color_request", userUsername, "red"));
-			listItems2.getItems().add("TEAM RED");
+			listItems2Client.getItems().add("TEAM RED");
 			//disables button
 			redBtn.setDisable(true);
 			blackBtn.setDisable(true);
@@ -181,7 +201,7 @@ public class GuiClient extends Application{
 
 		blackBtn.setOnAction(e -> {
 			clientConnection.send(new Message("color_request", userUsername, "black"));
-			listItems2.getItems().add("TEAM BLACK");
+			listItems2Client.getItems().add("TEAM BLACK");
 			//disables button
 			redBtn.setDisable(true);
 			blackBtn.setDisable(true);
@@ -204,16 +224,16 @@ public class GuiClient extends Application{
 	//     onlineUsers.setStyle("-fx-background-color: #ffccff;" + "-fx-background-radius: 10;"); //added
 
 		//rigth side style START
-		userList = new ListView<>();
-		userList.setPrefWidth(100);
+		userListClient = new ListView<>();
+		userListClient.setPrefWidth(100);
 
 	// style the list itself
-		userList.setStyle("-fx-background-color: #cce5ff;" + "-fx-control-inner-background: #cce5ff;" + "-fx-border-color: transparent;" + "-fx-text-fill: white;");
+		userListClient.setStyle("-fx-background-color: #cce5ff;" + "-fx-control-inner-background: #cce5ff;" + "-fx-border-color: transparent;" + "-fx-text-fill: white;");
 	// title label
 		Label ifOnline = new Label("ONLINE");
 		ifOnline.setStyle("-fx-text-fill: #b9bbbe;" + "-fx-font-size: 12px;" + "-fx-font-weight: bold;");
 	// container
-		VBox onlineUsers = new VBox(10, ifOnline, userList);
+		VBox onlineUsers = new VBox(10, ifOnline, userListClient);
 		onlineUsers.setPadding(new Insets(15));
 	// sidebar background
 		onlineUsers.setStyle("-fx-background-color: #ffccff; -fx-background-radius: 10;" );
@@ -224,25 +244,25 @@ public class GuiClient extends Application{
 		//HBox.setHgrow(c1, Priority.ALWAYS);        //original
 
 		// Chat box stlye update!!!
-		listItems2 = new ListView<>();
-		listItems2.setPrefHeight(300);
-		listItems2.setStyle("-fx-background-color: #cce5ff;" + "-fx-control-inner-background: #cce5ff;" + "-fx-text-fill: black;");
+		listItems2Client = new ListView<>();
+		listItems2Client.setPrefHeight(300);
+		listItems2Client.setStyle("-fx-background-color: #cce5ff;" + "-fx-control-inner-background: #cce5ff;" + "-fx-text-fill: black;");
 
-		c1 = new TextField(); //where the client types
-		c1.setPromptText("Message <3");
-		c1.setPrefWidth(230);
-		c1.setStyle("-fx-background-radius: 8;" + "-fx-padding: 8;");
+		c1Client = new TextField(); //where the client types
+		c1Client.setPromptText("Message <3");
+		c1Client.setPrefWidth(230);
+		c1Client.setStyle("-fx-background-radius: 8;" + "-fx-padding: 8;");
 
-		b1 = new Button("Send");
-		b1.setStyle("-fx-background-color: #4a90e2;" + "-fx-text-fill: white;" + "-fx-font-weight: bold;" + "-fx-background-radius: 8;");
+		b1Client = new Button("Send");
+		b1Client.setStyle("-fx-background-color: #4a90e2;" + "-fx-text-fill: white;" + "-fx-font-weight: bold;" + "-fx-background-radius: 8;");
 
-		b1.setOnAction(e -> sendMessage());
-		c1.setOnAction(e -> sendMessage());
+		b1Client.setOnAction(e -> sendMessage(c1Client));
+		c1Client.setOnAction(e -> sendMessage(c1Client));
 
-		HBox chatInput = new HBox(10, c1, b1);
+		HBox chatInput = new HBox(10, c1Client, b1Client);
 		chatInput.setPadding(new Insets(10));
 
-		clientBox = new VBox(15, listItems2, chatInput);
+		clientBox = new VBox(15, listItems2Client, chatInput);
 		clientBox.setPadding(new Insets(10));
 		clientBox.setStyle("-fx-background-color: #CCCCFF;" + "-fx-background-radius: 10;");
 		//Chat box style update END!!!
@@ -264,15 +284,21 @@ public class GuiClient extends Application{
 
 	//create checkersGui()
 	public Scene createCheckersGui() {
-		userList = new ListView<String>();
+		//userList = new ListView<String>();
+		userListCheckers = new ListView<>();
+		listItems2Checkers = new ListView<>();
+		c1Checkers = new TextField();
+		b1Checkers = new Button("Send");
 
+		b1Checkers.setOnAction(e -> sendMessage(c1Checkers));
+		c1Checkers.setOnAction(e -> sendMessage(c1Checkers));
 		Label ifOnline = new Label("Online: ");
-		VBox onlineUsers = new VBox(10, ifOnline, userList);
+		VBox onlineUsers = new VBox(10, ifOnline, userListCheckers);
 		onlineUsers.setPrefWidth(150);
 		onlineUsers.setPadding(new Insets(10));
 
-		HBox chatInput = new HBox(10, c1, b1);
-		HBox.setHgrow(c1, Priority.ALWAYS);
+		HBox chatInput = new HBox(10, c1Checkers, b1Checkers);
+		HBox.setHgrow(c1Checkers, Priority.ALWAYS);
 
 		GridPane board = new GridPane();
 		for(int i = 0; i < 8; i++){
@@ -296,7 +322,7 @@ public class GuiClient extends Application{
 		}
 		HBox guiLayout = new HBox(20);
 		guiLayout.setPadding(new Insets(10));
-		clientBox = new VBox(30,listItems2, chatInput);
+		clientBox = new VBox(30,listItems2Checkers, chatInput);
 		clientBox.setStyle("-fx-background-color: #FA8FA6;"+"-fx-font-family: 'serif';");
 		HBox.setHgrow(clientBox, Priority.ALWAYS);
 		guiLayout.getChildren().addAll(board, clientBox);
@@ -364,13 +390,14 @@ public class GuiClient extends Application{
 	}
 
 
-	public void sendMessage(){
-		String input = c1.getText();
+	public void sendMessage(TextField textField){
+		String input = textField.getText();
 		if(input.isEmpty()){
 			return;
 		}
 		else {
 			clientConnection.send(new Message(Message.message, userUsername, input));
+			textField.clear();
 		}
 	}
 
