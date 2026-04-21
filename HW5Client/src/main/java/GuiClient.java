@@ -110,6 +110,16 @@ public class GuiClient extends Application{
 			this.boardLogic = data.board;
 			updateBoard();
 		}
+		else if (data.type.equals("color_assigned")) { //what color you are
+
+			if (data.user.equals(userUsername)) {
+				listItems2.getItems().add("You are " + data.sentMessage);
+			}
+		}
+		else if (data.type.equals("color_broadcast")) { //tells eveyone you chose a color
+			listItems2.getItems().add(data.sentMessage);
+		}
+	}
 	}
 
 	void sendUsername(){
@@ -139,7 +149,119 @@ public class GuiClient extends Application{
 		return new Scene(box, 500, 500);
 	}
 
-	
+	public Scene createClientGui() {
+		VBox colorBox = new VBox(15);
+		colorBox.setPadding(new Insets(10));
+		colorBox.setStyle("-fx-background-color: #ffccff;" + "-fx-background-radius: 10;");
+
+		Label colorTitle = new Label("Choose a Color");
+		colorTitle.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
+
+		//Buttons
+		Button redBtn = new Button("Red");
+		Button blackBtn = new Button("Black");
+		Button nxt = new Button("Continue"); // heading to scene3. Will also add the checker piece to the board,
+		redBtn.setPrefSize(120, 80);
+		blackBtn.setPrefSize(120, 80);
+		nxt.setPrefSize(120,50);
+		redBtn.setStyle("-fx-background-color: red; -fx-text-fill: white; -fx-font-size: 15px;");
+		blackBtn.setStyle("-fx-background-color: black; -fx-text-fill: white; -fx-font-size: 15px;");
+		nxt.setStyle("-fx-background-color: #CCCCFF ; -fx-text-fill: white; -fx-font-size: 15px;");
+
+		//Buttons are Clickable!
+		redBtn.setOnAction(e -> {
+			clientConnection.send(new Message("color_request", userUsername, "red"));
+			listItems2.getItems().add("TEAM RED");
+			//disables button
+			redBtn.setDisable(true);
+			blackBtn.setDisable(true);
+			nxt.setDisable(false);
+		});
+
+		blackBtn.setOnAction(e -> {
+			clientConnection.send(new Message("color_request", userUsername, "black"));
+			listItems2.getItems().add("TEAM BLACK");
+			//disables button
+			redBtn.setDisable(true);
+			blackBtn.setDisable(true);
+			nxt.setDisable(false);
+		});
+
+	//     nxt.setOnAction(e -> { // this will take the clients to the checkerboard
+	//        primaryStage.setScene(sceneMap.get("scene3"));
+	//        nxt.setDisable(false);
+		//
+	//     })
+
+		colorBox.getChildren().addAll(colorTitle, redBtn, blackBtn, nxt);
+
+		//Your code will be commented out just in case.
+	//     userList = new ListView<String>();
+	//     Label ifOnline = new Label("Online: ");
+	//     VBox onlineUsers = new VBox(10, ifOnline, userList);
+	//     onlineUsers.setPrefWidth(120);
+	//     onlineUsers.setStyle("-fx-background-color: #ffccff;" + "-fx-background-radius: 10;"); //added
+
+		//rigth side style START
+		userList = new ListView<>();
+		userList.setPrefWidth(100);
+
+	// style the list itself
+		userList.setStyle("-fx-background-color: #cce5ff;" + "-fx-control-inner-background: #cce5ff;" + "-fx-border-color: transparent;" + "-fx-text-fill: white;");
+	// title label
+		Label ifOnline = new Label("ONLINE");
+		ifOnline.setStyle("-fx-text-fill: #b9bbbe;" + "-fx-font-size: 12px;" + "-fx-font-weight: bold;");
+	// container
+		VBox onlineUsers = new VBox(10, ifOnline, userList);
+		onlineUsers.setPadding(new Insets(15));
+	// sidebar background
+		onlineUsers.setStyle("-fx-background-color: #ffccff; -fx-background-radius: 10;" );
+		//right side style END
+
+
+		//HBox chatInput = new HBox(10, c1, b1);      //original
+		//HBox.setHgrow(c1, Priority.ALWAYS);        //original
+
+		// Chat box stlye update!!!
+		listItems2 = new ListView<>();
+		listItems2.setPrefHeight(300);
+		listItems2.setStyle("-fx-background-color: #cce5ff;" + "-fx-control-inner-background: #cce5ff;" + "-fx-text-fill: black;");
+
+		c1 = new TextField(); //where the client types
+		c1.setPromptText("Message <3");
+		c1.setPrefWidth(230);
+		c1.setStyle("-fx-background-radius: 8;" + "-fx-padding: 8;");
+
+		b1 = new Button("Send");
+		b1.setStyle("-fx-background-color: #4a90e2;" + "-fx-text-fill: white;" + "-fx-font-weight: bold;" + "-fx-background-radius: 8;");
+
+		b1.setOnAction(e -> sendMessage());
+		c1.setOnAction(e -> sendMessage());
+
+		HBox chatInput = new HBox(10, c1, b1);
+		chatInput.setPadding(new Insets(10));
+
+		clientBox = new VBox(15, listItems2, chatInput);
+		clientBox.setPadding(new Insets(10));
+		clientBox.setStyle("-fx-background-color: #CCCCFF;" + "-fx-background-radius: 10;");
+		//Chat box style update END!!!
+
+
+		//clientBox = new VBox(20, colorBox,listItems2, chatInput); //added colorBox
+		//clientBox.setStyle("-fx-background-color: #e0b0ff;"+"-fx-font-family: 'serif';"); // added
+
+		BorderPane root = new BorderPane();
+		root.setLeft(colorBox); //added this and changed the centering
+		root.setCenter(clientBox);
+		root.setRight(onlineUsers);
+
+		return new Scene(root, 600, 400); //changed from 400 300
+
+
+	}
+
+
+	//create checkersGui()
 	public Scene createClientGui() {
 		userList = new ListView<String>();
 
@@ -150,9 +272,6 @@ public class GuiClient extends Application{
 
 		HBox chatInput = new HBox(10, c1, b1);
 		HBox.setHgrow(c1, Priority.ALWAYS);
-
-
-
 
 		GridPane board = new GridPane();
 		for(int i = 0; i < 8; i++){
@@ -172,15 +291,10 @@ public class GuiClient extends Application{
 				cell.setOnAction(e -> {
 					handleMove(row, col);
 				});
-
-
-
 			}
 		}
 		HBox guiLayout = new HBox(20);
 		guiLayout.setPadding(new Insets(10));
-
-
 		clientBox = new VBox(30,listItems2, chatInput);
 		clientBox.setStyle("-fx-background-color: #FA8FA6;"+"-fx-font-family: 'serif';");
 		HBox.setHgrow(clientBox, Priority.ALWAYS);
@@ -190,7 +304,6 @@ public class GuiClient extends Application{
 		root.setRight(onlineUsers);
 
 		return new Scene(root, 1000, 420);
-
 
 	}
 
@@ -238,24 +351,6 @@ public class GuiClient extends Application{
 			}
 		}
 	}
-
-//	void initializeBoard(){
-//		for(int i = 0; i < 3; i++){
-//			for(int j = 0; j < 8; j++){
-//				if((i+j) % 2 == 1){
-//					boardLogic[i][j] = 2;
-//				}
-//			}
-//		}
-//
-//		for(int i = 5; i < 8; i++){
-//			for(int j = 0; j < 8; j++){
-//				if((i+j) % 2 == 1){
-//					boardLogic[i][j] = 1;
-//				}
-//			}
-//		}
-//	}
 
 	public void playAgain(){
 		Button playAgain = new Button("Play Again!");

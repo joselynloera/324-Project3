@@ -26,7 +26,9 @@ public class Server{
 	HashMap<String, ClientThread> usernameMap = new HashMap<>();
 	int[][] boardLogic = new int[8][8];
 	boolean redTurn = true;
-	
+
+	boolean redTaken = false; //added
+	boolean blackTaken = false; //added
 	
 	Server(Consumer<Serializable> call){
 	
@@ -156,11 +158,20 @@ public class Server{
 							else if(data.type.equals(Message.move)){
 								handleMove(data, this);
 							}
+							else if (data.type.equals("color_request")) { //added
+								handleColorRequest(data);
+							}
 					    	
 					    	}
 					    catch(Exception e) {
 					    	//callback.accept("OOOOPPs...Something wrong with the socket from client: " + count + "....closing down!");
 					    	//updateClients("Client #"+count+" has left the server!");
+							if ("red".equals(this.color)) { //added
+								redTaken = false;
+							}
+							if ("black".equals(this.color)) {
+								blackTaken = false;
+							}
 							callback.accept(username + " disconnected");
 					    	clients.remove(this);
 							showUserList();
@@ -168,6 +179,57 @@ public class Server{
 					    }
 					}
 				}//end of run
+
+			void handleColorRequest(Message data) {
+				String requested = data.sentMessage; //color the client asked for
+				String assigned = null; //assigning the color
+
+				synchronized (Server.this) { //prevents two clients from getting the same colorf
+					if (requested.equals("red")) {
+						if (!redTaken) {
+							redTaken = true;
+							color = "red";
+							assigned = "red";
+						}
+						else if (!blackTaken) { //when red is taken
+							blackTaken = true;
+							color = "black";
+							assigned = "black";
+						}
+					}
+					else if (requested.equals("black")) { //client requests black
+						if (!blackTaken) {
+							blackTaken = true;
+							color = "black";
+							assigned = "black";
+						}
+						else if (!redTaken) { //black is taken give red instead
+							redTaken = true;
+							color = "red";
+							assigned = "red";
+						}
+					}
+					if (assigned == null) { //both colors are taken
+						assigned = "none";
+					}
+				}
+				try { // Send the result only to the client who made the request
+					out.writeObject(new Message("color_assigned", username, assigned));
+					out.reset();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+				for (ClientThread c : clients) { // Send a message to all of the clients saying who got which color. THIS WORKS YAY
+					try {
+						c.out.writeObject(new Message("color_broadcast", username,
+								username + " is " + assigned));
+						c.out.reset();
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+				}
+			}
+
 			void setUsername(Message data){
 				if(usernameCheck(data.sentMessage) == true){
 					goToMessage(new Message(Message.usernameTaken, null, "Username is taken, try another one"));
