@@ -47,6 +47,7 @@ public class Client extends Thread{
 		
 		try {
 			out.writeObject(data);
+			out.reset();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

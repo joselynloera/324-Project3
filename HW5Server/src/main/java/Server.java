@@ -15,6 +15,8 @@ import javafx.scene.control.ListView;
  * C: kind of following
  */
 
+//why is there an iclicker question here lmao???
+
 public class Server{
 
 	int count = 1;	
@@ -22,6 +24,8 @@ public class Server{
 	TheServer server;
 	private Consumer<Serializable> callback;
 	HashMap<String, ClientThread> usernameMap = new HashMap<>();
+	int[][] boardLogic = new int[8][8];
+	boolean redTurn = true;
 	
 	
 	Server(Consumer<Serializable> call){
@@ -118,9 +122,10 @@ public class Server{
 			void goToMessage(Message input){
 				try {
 					out.writeObject(input);
+					out.reset();
 				}
 				catch(Exception e){
-
+					e.printStackTrace();
 				}
 			}
 			public void run(){
@@ -148,6 +153,9 @@ public class Server{
 							else if (data.type.equals(Message.message)){
 								handleMessage(data);
 							}
+							else if(data.type.equals(Message.move)){
+								handleMove(data, this);
+							}
 					    	
 					    	}
 					    catch(Exception e) {
@@ -169,6 +177,9 @@ public class Server{
 					goToMessage(new Message(Message.usernameGood, null, "Username good"));
 					showUserList();
 					callback.accept(username + " connected");
+					if(clients.size() == 2){
+						startGame(); //change so that when one color is chosen start game
+					}
 				}
 			}
 
@@ -182,6 +193,67 @@ public class Server{
 						e.printStackTrace();
 					}
 				}
+			}
+
+			void initializeBoard(){
+				for(int i = 0; i < 3; i++){
+					for(int j = 0; j < 8; j++){
+						if((i+j) % 2 == 1){
+							boardLogic[i][j] = 2;
+						}
+					}
+				}
+
+				for(int i = 5; i < 8; i++){
+					for(int j = 0; j < 8; j++){
+						if((i+j) % 2 == 1){
+							boardLogic[i][j] = 1;
+						}
+					}
+				}
+			}
+			//change this
+			void startGame(){
+				initializeBoard();
+				redTurn = true;
+
+				ClientThread player1 = clients.get(0);
+				ClientThread player2 = clients.get(1);
+
+				Message m1 = new Message(Message.startGame, null, "1");
+				m1.board = boardLogic;
+				player1.goToMessage(m1);
+
+				Message m2 = new Message(Message.startGame, null, "2");
+				m2.board = boardLogic;
+				player2.goToMessage(m2);
+			}
+
+			void handleMove(Message data, ClientThread user){
+				int fromR = data.fromRow;
+				int fromC = data.fromCol;
+				int toR = data.toRow;
+				int toC = data.toCol;
+
+				int piece = boardLogic[fromR][fromC];
+				boardLogic[toR][toC] = piece;
+				boardLogic[fromR][fromC] = 0;
+
+				Message update = new Message(Message.updateBoard, null, null);
+				update.board = boardLogic;
+
+				for(ClientThread client: clients){
+					client.goToMessage(update);
+				}
+//				if(validMove(fromR, fromC, toR, toC, currentPlayer) == false){
+//					user.goToMessage(new Message(Message.move, null, "invalid"));
+//					return;
+//				}
+//				userMoves(fromR, fromC, toR, toC);
+//				message m = new Message(Message.updateBoard, null, null);
+//				m.board = board;
+//				player1.goToMessage(m);
+//				player2.goToMessage(m);
 			}
 
 			
