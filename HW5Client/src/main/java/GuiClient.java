@@ -15,8 +15,6 @@ import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
 
 public class GuiClient extends Application{
-
-	
 	TextField c1;
 	Button b1;
 	HashMap<String, Scene> sceneMap;
@@ -44,7 +42,6 @@ public class GuiClient extends Application{
 
 							
 		clientConnection.start();
-
 
 		listItems2 = new ListView<String>();
 		c1 = new TextField();
@@ -85,6 +82,15 @@ public class GuiClient extends Application{
 		else if (data.type.equals(Message.message)){
 			listItems2.getItems().add(data.user + ": " + data.sentMessage);
 		}
+		else if (data.type.equals("color_assigned")) { //what color you are
+
+			if (data.user.equals(userUsername)) {
+				listItems2.getItems().add("You are " + data.sentMessage);
+			}
+		}
+		else if (data.type.equals("color_broadcast")) { //tells eveyone you chose a color
+			listItems2.getItems().add(data.sentMessage);
+		}
 	}
 
 	void sendUsername(){
@@ -114,8 +120,48 @@ public class GuiClient extends Application{
 		return new Scene(box, 500, 500);
 	}
 
-	
 	public Scene createClientGui() {
+		VBox colorBox = new VBox(15);
+		colorBox.setPadding(new Insets(10));
+
+		Label colorTitle = new Label("Choose a Color");
+		colorTitle.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
+
+		//Buttons
+		Button redBtn = new Button("Red");
+		Button blackBtn = new Button("Black");
+		//Button nxt = new Button("Continue"); // heading to scene3. Will also add the checker piece to the board,
+		redBtn.setPrefSize(120, 80);
+		blackBtn.setPrefSize(120, 80);
+		nxt.setPrefSize(80,80);
+		redBtn.setStyle("-fx-background-color: red; -fx-text-fill: white;");
+		blackBtn.setStyle("-fx-background-color: black; -fx-text-fill: white;");
+		nxt.setStyle("-fx-background-color: pink; -fx-text-fill: white;");
+
+		//Buttons are Clickable!
+		redBtn.setOnAction(e -> {
+			clientConnection.send(new Message("color_request", userUsername, "red"));
+			listItems2.getItems().add("TEAM RED");
+			//disables button
+			redBtn.setDisable(true);
+			blackBtn.setDisable(true);
+		});
+
+		blackBtn.setOnAction(e -> {
+			clientConnection.send(new Message("color_request", userUsername, "black"));
+			listItems2.getItems().add("TEAM BLACK");
+			//disables button
+			redBtn.setDisable(true);
+			blackBtn.setDisable(true);
+		});
+
+//		nxt.setOnAction(e -> {
+//			primaryStage.setScene(sceneMap.get("scene3"));
+//		})
+
+		colorBox.getChildren().addAll(colorTitle, redBtn, blackBtn);
+
+		//Your code has not been messsed with.
 		userList = new ListView<String>();
 		Label ifOnline = new Label("Online: ");
 		VBox onlineUsers = new VBox(10, ifOnline, userList);
@@ -126,14 +172,15 @@ public class GuiClient extends Application{
 
 
 
-		clientBox = new VBox(30,listItems2, chatInput);
+		clientBox = new VBox(20, colorBox,listItems2, chatInput); //added colorBox
 		clientBox.setStyle("-fx-background-color: blue;"+"-fx-font-family: 'serif';");
 
 		BorderPane root = new BorderPane();
+		root.setLeft(colorBox); //added this and changed the centering
 		root.setCenter(clientBox);
 		root.setRight(onlineUsers);
 
-		return new Scene(root, 400, 300);
+		return new Scene(root, 600, 400); //changed from 400 300
 
 
 	}
