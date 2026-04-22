@@ -45,6 +45,19 @@ public class Server{
 		return null;
 	}
 
+//	ArrayList<GameRoom> rooms = new ArrayList<>();
+//
+//
+//	void handleMove(Message data, ClientThread sender) {
+//		GameRoom room = sender.myRoom;
+//
+//		if (room.validMoveCheck(data.fromRow, data.fromCol, data.toRow, data.toCol)) {
+//			room.movePiece(...);
+//			room.redPlayer.goToMessage(updateMsg);
+//			room.blackPlayer.goToMessage(updateMsg);
+//		}
+//	}
+
 	boolean usernameCheck(String username){
 		if(getClientUserID(username) != null){
 			return true;
@@ -70,35 +83,70 @@ public class Server{
             };
 		}
 	}
+	//change
+	boolean validMoveCheck(int fromR, int fromC, int toR, int toC){
+		int piece = boardLogic[fromR][fromC];
+		int rowDirection = toR-fromR;
+		int colDirection = toC-fromC;
+		if(piece == 0){
+			return false;
+		}
+		if(toR < 0 || toR > 7 || toC < 0 || toC > 7){
+			return false;
+		}
+		if(boardLogic[toR][toC] != 0){
+			return false;
+		}
+		if((toR + toC) % 2 == 0){
+			return false;
+		}
+		if(piece == 1 && rowDirection >= 0){
+			return false;
+		}
+		if(piece == 2 && rowDirection <= 0){
+			return false;
+		}
 
-//	boolean validMoveCheck(int fromR, int fromC, int toR, int toC){
-//		int piece = boardLogic[fromR][fromC];
-//		if(piece == 0){
+
+		boolean isRedPiece  = (piece == 1 || piece == 3);
+		boolean isBlackPiece = (piece == 2 || piece == 4);
+		if(isRedPiece  && !redTurn) return false;
+		if(isBlackPiece &&  redTurn) return false;
+
+//		if((piece == 1 && redTurn == false) || (piece == 2 && redTurn == true)){
 //			return false;
 //		}
-//		if(toR < 0 || toR > 7 || toC < 0 || toC > 7){
-//			return false;
-//		}
-//		if(boardLogic[toR][toC] != 0){
-//			return false;
-//		}
-//
-//		int rowDirection = toR-fromR;
-//		int colDirection = toC-fromC;
-//
-//		if((piece == 1 && redTurn == false) || (piece == 2 && reTurn == true)){
-//			return false;
-//		}
-//		if(piece == 1 && rowDirection >= 0){
-//			return false;
-//		}
-//		if(piece == 2 && colDirection <= 0){
-//			return false;
-//		}
-//		if(Math.abs(rowDirection) == 1 && colDirection == 1){
-//			return true;
-//		}
-//	}
+		if(piece == 1 && rowDirection >= 0){
+			return false;
+		}
+		if(piece == 2 && rowDirection <= 0){
+			return false;
+		}
+		if(Math.abs(rowDirection) == 1 && Math.abs(colDirection) == 1){
+			return true;
+		}
+
+		if (Math.abs(rowDirection) == 2 && Math.abs(colDirection) == 2) {
+			int midR = (fromR + toR) / 2;
+			int midC = (fromC + toC) / 2;
+			int mid = boardLogic[midR][midC];
+
+			if(isRedPiece  && (mid == 2 || mid == 4)) return true;
+
+			if(isBlackPiece && (mid == 1 || mid == 3)) return true;
+//			if (piece == 1 && mid == 2) return true;
+//			if (piece == 2 && mid == 1) return true;
+		}
+		return false;
+
+
+	}
+
+	void movePiece(int fromR, int fromC, int toR, int toC){
+		boardLogic[toR][toC] = boardLogic[fromR][fromC];
+		boardLogic[fromR][fromC] = 0;
+
+	}
 	
 	public class TheServer extends Thread{
 		
@@ -190,6 +238,9 @@ public class Server{
 							else if (data.type.equals("color_request")) { //added
 								handleColorRequest(data);
 							}
+							else if(data.type.equals(Message.playAgain)){
+								handlePlayAgain(this);
+							}
 					    	
 					    	}
 					    catch(Exception e) {
@@ -203,7 +254,16 @@ public class Server{
 							}
 							callback.accept(username + " disconnected");
 					    	clients.remove(this);
-							showUserList();
+							if (clients.isEmpty()) {
+								boardLogic = new int[8][8];
+								redTaken = false;
+								blackTaken = false;
+								redTurn = true;
+
+							}else {
+								showUserList();
+							}
+
 					    	break;
 					    }
 					}
@@ -257,7 +317,12 @@ public class Server{
 						e.printStackTrace();
 					}
 				}
+				if(redTaken && blackTaken){
+					startGame();
+				}
 			}
+
+
 
 			void setUsername(Message data){
 				if(usernameCheck(data.sentMessage) == true){
@@ -268,9 +333,9 @@ public class Server{
 					goToMessage(new Message(Message.usernameGood, null, "Username good"));
 					showUserList();
 					callback.accept(username + " connected");
-					if(clients.size() == 2){
-						startGame(); //change so that when one color is chosen start game
-					}
+//					if(clients.size() == 2){
+//						startGame(); //change so that when one color is chosen start game
+//					}
 				}
 			}
 
@@ -287,6 +352,7 @@ public class Server{
 			}
 
 			void initializeBoard(){
+				boardLogic = new int[8][8];
 				for(int i = 0; i < 3; i++){
 					for(int j = 0; j < 8; j++){
 						if((i+j) % 2 == 1){
@@ -308,17 +374,49 @@ public class Server{
 				initializeBoard();
 				redTurn = true;
 
-				ClientThread player1 = clients.get(0);
-				ClientThread player2 = clients.get(1);
+				for(ClientThread client : clients){
+					int playerColor;
+					if("red".equals(client.color)){
+						playerColor = 1;
+					}
+					else {
+						playerColor = 2;
+					}
+					Message message = new Message(Message.startGame, null, String.valueOf(playerColor));
+					message.board = boardLogic;
+					client.goToMessage(message);
+				}
 
-				Message m1 = new Message(Message.startGame, null, "1");
-				m1.board = boardLogic;
-				player1.goToMessage(m1);
+//				ClientThread player1 = clients.get(0);
+//				ClientThread player2 = clients.get(1);
 
-				Message m2 = new Message(Message.startGame, null, "2");
-				m2.board = boardLogic;
-				player2.goToMessage(m2);
+//				Message m1 = new Message(Message.startGame, null, "1");
+//				m1.board = boardLogic;
+//				player1.goToMessage(m1);
+//
+//				Message m2 = new Message(Message.startGame, null, "2");
+//				m2.board = boardLogic;
+//				player2.goToMessage(m2);
 			}
+
+			void handlePlayAgain(ClientThread threadReq){
+				initializeBoard();
+				redTurn = true;
+				int playerColor;
+				for(ClientThread client : clients){
+					if("red".equals(client.color)){
+						playerColor = 1;
+					}
+					else {
+						playerColor = 2;
+					}
+					Message message = new Message(Message.startGame, null, String.valueOf(playerColor));
+					message.board = boardLogic;
+					client.goToMessage(message);
+				}
+
+			}
+
 
 			void handleMove(Message data, ClientThread user){
 				int fromR = data.fromRow;
@@ -326,20 +424,70 @@ public class Server{
 				int toR = data.toRow;
 				int toC = data.toCol;
 
+				if(validMoveCheck(fromR, fromC, toR, toC) == false){
+					user.goToMessage(new Message(Message.move, null, "invalid"));
+					return;
+				}
+
 				int piece = boardLogic[fromR][fromC];
 				boardLogic[toR][toC] = piece;
 				boardLogic[fromR][fromC] = 0;
 
-				Message update = new Message(Message.updateBoard, null, null);
+				if(Math.abs(toR - fromR) == 2){
+					int capR = (fromR + toR) / 2;
+					int capC = (fromC + toC) / 2;
+					boardLogic[capR][capC] = 0;
+				}
+				//king logic goes here!!!!!!!
+
+				if(piece == 1 && toR == 0){
+					boardLogic[toR][toC] = 3;
+				}
+				if(piece == 2 && toR == 7){
+					boardLogic[toR][toC] = 4;
+				}
+
+				int numOfRed = 0;
+				int numOfBlack = 0;
+				for(int i = 0; i < 8; i++){
+					for(int j = 0; j < 8; j++){
+						int num = boardLogic[i][j];
+						if(num == 1 || num == 3){
+							numOfRed++;
+						}
+						if(num == 2 || num == 4){
+							numOfBlack++;
+						}
+					}
+				}
+				if(numOfRed ==0){
+					Message gameOver = new Message(Message.gameOver, null, " Black wins!");
+					gameOver.board = boardLogic;
+					for(ClientThread client : clients) client.goToMessage(gameOver);
+					return;
+				}
+				if(numOfBlack == 0){
+					Message gameOver = new Message(Message.gameOver, null, " Red wins!");
+					gameOver.board = boardLogic;
+					for(ClientThread client : clients) client.goToMessage(gameOver);
+					return;
+				}
+				redTurn = !redTurn;
+
+				Message update = new Message(Message.updateBoard, null, "");
 				update.board = boardLogic;
+				if(redTurn == true){
+					update.sentMessage = "1";
+				} else {
+					update.sentMessage = "2";
+				}
 
 				for(ClientThread client: clients){
 					client.goToMessage(update);
 				}
-//				if(validMove(fromR, fromC, toR, toC, currentPlayer) == false){
-//					user.goToMessage(new Message(Message.move, null, "invalid"));
-//					return;
-//				}
+
+
+
 //				userMoves(fromR, fromC, toR, toC);
 //				message m = new Message(Message.updateBoard, null, null);
 //				m.board = board;
@@ -350,6 +498,17 @@ public class Server{
 			
 			
 		}//end of client thread
+//
+//	public class room{
+//		public ClientThread redPlayer;
+//		public ClientThread blackPlayer;
+//		public int[][] boardLogic = new int[8][8];
+//		public boolean redTurn = true;
+//
+//		public room{
+//			initializeBoard();
+//		}
+//	}
 }
 
 

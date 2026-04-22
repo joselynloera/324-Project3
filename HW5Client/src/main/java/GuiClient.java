@@ -53,10 +53,10 @@ public class GuiClient extends Application{
 	@Override
 	public void start(Stage primaryStage) throws Exception {
 		this.primaryStage = primaryStage;
-		clientConnection = new Client(message-> Platform.runLater(() -> handleMessage((Message) message)));
+		//clientConnection = new Client(message-> Platform.runLater(() -> handleMessage((Message) message)));
 
 							
-		clientConnection.start();
+		//clientConnection.start();
 
 
 		listItems2Client = new ListView<String>();
@@ -114,6 +114,13 @@ public class GuiClient extends Application{
 		else if(data.type.equals(Message.updateBoard)){
 			boardLogic = data.board;
 			updateBoard();
+			if(data.sentMessage != null && !data.sentMessage.isEmpty()){
+				int turnInt = Integer.parseInt(data.sentMessage);
+				turn = (playerPieceType == turnInt);
+				//turn = (playerPieceType == Integer.parseInt(data.sentMessage));
+				//System.out.println("turn updated. piece type: " + playerPieceType + ", current turn: " + turnInt);
+			}
+
 		}
 		else if (data.type.equals(Message.gameOver)){
 			turn = false;
@@ -125,8 +132,10 @@ public class GuiClient extends Application{
 		else if(data.type.equals(Message.startGame)){
 			playerPieceType = Integer.parseInt(data.sentMessage);
 			turn = (playerPieceType == 1);
+			firstMove = true;
 			this.boardLogic = data.board;
 			updateBoard();
+			clientBox.getChildren().removeIf(node -> node instanceof Button && ((Button) node).getText().equals("Play Again!"));
 		}
 		else if (data.type.equals("color_assigned")) { //what color you are
 
@@ -140,16 +149,25 @@ public class GuiClient extends Application{
 			listItems2Checkers.getItems().add(data.sentMessage);
 
 		}
+		else if (data.type.equals(Message.move)) {
+			if ("invalid".equals(data.sentMessage)) {
+				this.turn = true;
+				this.firstMove = true;
+				//System.out.println("Move was invalid");
+			}//maybe fix
+		}
 	}
 
 
 	void sendUsername(){
 		String name = inputUsername.getText();
+
 		if(name.isEmpty()){
 			return;
 		}
 		else {
 			userUsername = name;
+
 			clientConnection.send(new Message(Message.userID, null, name));
 		}
 	}
@@ -161,7 +179,17 @@ public class GuiClient extends Application{
 		inputServerIP = new TextField();
 		inputPort = new TextField();
 
-		jB.setOnAction(e -> sendUsername());
+		jB.setOnAction(e -> {
+			String ip = inputServerIP.getText();
+			int port = Integer.parseInt(inputPort.getText());
+			userUsername = inputUsername.getText();
+
+			clientConnection = new Client(ip, port, message->
+					Platform.runLater(() -> handleMessage((Message) message)), () -> sendUsername() );
+			clientConnection.start();
+
+			//sendUsername();
+		});
 
 		VBox box = new VBox(10, new Label("Enter Server IP:"), inputServerIP,
 				new Label("Enter Port:"), inputPort,
@@ -297,6 +325,17 @@ public class GuiClient extends Application{
 		onlineUsers.setPrefWidth(150);
 		onlineUsers.setPadding(new Insets(10));
 
+
+//style for online (RIGHT SIDE)
+		listItems2Checkers.setStyle("-fx-background-color: #cce5ff;" + "-fx-control-inner-background: #cce5ff;" + "-fx-text-fill: black;");
+		userListCheckers.setStyle("-fx-background-color: #cce5ff;" + "-fx-control-inner-background: #cce5ff;" + "-fx-border-color: transparent;" + "-fx-text-fill: white;");
+		ifOnline.setStyle("-fx-text-fill: #b9bbbe;" + "-fx-font-size: 12px;" + "-fx-font-weight: bold;");
+		onlineUsers.setStyle("-fx-background-color: #ffccff; -fx-background-radius: 10;");
+		c1Checkers.setPromptText("Message <3");
+		c1Checkers.setStyle("-fx-background-radius: 8;" + "-fx-padding: 8;");
+		b1Checkers.setStyle("-fx-background-color: #4a90e2;" + "-fx-text-fill: white;" + "-fx-font-weight: bold;" + "-fx-background-radius: 8;");
+
+
 		HBox chatInput = new HBox(10, c1Checkers, b1Checkers);
 		HBox.setHgrow(c1Checkers, Priority.ALWAYS);
 
@@ -340,15 +379,23 @@ public class GuiClient extends Application{
 
 
 	void handleMove(int r, int c){
+
 		if(turn == false){
+			//System.out.println("input ignored not correct turn");
 			return;
 		}
-		if(firstMove == true && boardLogic[r][c] == pieceTypeCheck()){
+
+		boolean pieceCheckForAllTypes = (playerPieceType == 1 && (boardLogic[r][c] == 1 || boardLogic[r][c] == 3)) ||
+				(playerPieceType == 2 && (boardLogic[r][c] == 2 || boardLogic[r][c] == 4));
+
+		if(firstMove == true && pieceCheckForAllTypes){
 			startRow = r;
 			startCol = c;
 			firstMove = false;
-		} else {
-			firstMove = true;
+			//System.out.println("First move: Selected piece at [" + r + ", " + c + "]");
+		} else if (firstMove == false){
+			//System.out.println("Second move: Attempting to move from [" + startRow + ", " + startCol + "] to [" + r + ", " + c + "]");
+
 			Message m = new Message(Message.move, userUsername, null);
 			m.fromRow = startRow;
 			m.fromCol = startCol;
@@ -356,7 +403,10 @@ public class GuiClient extends Application{
 			m.toCol = c;
 			//maybe change??
 			clientConnection.send(m);
-			turn = false;
+			firstMove = true;
+			//turn = false;
+		} else {
+			//System.out.println("clicked wrong piece type");
 		}
 	}
 
@@ -364,17 +414,47 @@ public class GuiClient extends Application{
 		for(int i = 0; i < 8; i++){
 			for(int j = 0; j < 8; j++){
 				int piece = boardLogic[i][j];
+				String bgColor = ((i + j) % 2 == 0) ? "#FCBBCD" : "#B99A74";
 				if(piece == 1){
-					buttonBoard[i][j].setText("R");
-					//buttonBoard[i][j].setStyle("-fx-text-fill: red; -fx-font-weight: bold;");
+					buttonBoard[i][j].setText("●");
+					buttonBoard[i][j].setStyle("-fx-background-color: " + bgColor + "; -fx-text-fill: red; -fx-font-size: 20px;");
 				}
 				else if (piece == 2){
-					buttonBoard[i][j].setText("B");
-					//buttonBoard[i][j].setStyle("-fx-text-fill: black; -fx-font-weight: bold;");
+					buttonBoard[i][j].setText("●");
+					buttonBoard[i][j].setStyle("-fx-background-color: " + bgColor + "; -fx-text-fill: black; -fx-font-size: 20px;");
+				}
+				else if(piece == 3){
+					buttonBoard[i][j].setText("●");
+					buttonBoard[i][j].setStyle("-fx-background-color: " + bgColor + "; -fx-text-fill: #780000; -fx-font-size: 20px;");
+				}
+				else if (piece == 4){
+					buttonBoard[i][j].setText("●");
+					buttonBoard[i][j].setStyle("-fx-background-color: " + bgColor + "; -fx-text-fill: #696969; -fx-font-size: 20px;");
 				}
 				else {
 					buttonBoard[i][j].setText("");
+					buttonBoard[i][j].setStyle("-fx-background-color: " + bgColor + ";");
 				}
+//				if(piece == 1){
+//					buttonBoard[i][j].setText("●");
+//					buttonBoard[i][j].setStyle("-fx-background-color: #FCBBCD; -fx-text-fill: red; -fx-font-weight: bold;");
+//				}
+//				else if (piece == 2){
+//					buttonBoard[i][j].setText("●");
+//					buttonBoard[i][j].setStyle("-fx-background-color: #FCBBCD; -fx-text-fill: black; -fx-font-weight: bold;");
+//				}
+//				else if(piece == 3){
+//					buttonBoard[i][j].setText("●");
+//					buttonBoard[i][j].setStyle("-fx-background-color: #FCBBCD; -fx-text-fill: #9C2007; -fx-font-weight: bold;");
+//				}
+//				else if (piece == 4){
+//					buttonBoard[i][j].setText("●");
+//					buttonBoard[i][j].setStyle("-fx-background-color: #FCBBCD; -fx-text-fill: #696969; -fx-font-weight: bold;");
+//				}
+//				else {
+//					buttonBoard[i][j].setText("");
+//					buttonBoard[i][j].setStyle("-fx-background-color: #FCBBCD;");
+//				}
 			}
 		}
 	}
